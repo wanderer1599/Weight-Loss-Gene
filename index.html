@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A private, browser-based weight-loss and walking tracker." />
+  <title>Weight-Loss Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --panel-2: #1f2630;
+      --text: #e6edf3;
+      --muted: #9da7b3;
+      --border: #30363d;
+      --accent: #58a6ff;
+      --good: #3fb950;
+      --warn: #d29922;
+      --danger: #f85149;
+      --shadow: 0 12px 30px rgba(0,0,0,.25);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(88,166,255,.12), transparent 35%),
+        var(--bg);
+      line-height: 1.5;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .wrap { width: min(1180px, calc(100% - 28px)); margin: 0 auto; }
+    header {
+      padding: 34px 0 18px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13,17,23,.78);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1, h2, h3 { margin: 0 0 10px; line-height: 1.18; }
+    h1 { font-size: clamp(1.8rem, 4vw, 3rem); }
+    h2 { font-size: 1.2rem; }
+    p { margin: 6px 0; }
+    .sub { color: var(--muted); max-width: 780px; }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .btn {
+      color: var(--text);
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 9px 12px;
+      text-decoration: none;
+      transition: .15s ease;
+    }
+    nav a:hover, .btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .btn.primary { background: var(--accent); color: #06192c; border-color: var(--accent); font-weight: 700; }
+    .btn.good { background: var(--good); color: #071b0b; border-color: var(--good); font-weight: 700; }
+    .btn.danger { color: #ffd8d5; border-color: rgba(248,81,73,.55); }
+    main { padding: 24px 0 54px; }
+    .grid { display: grid; gap: 16px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.018), transparent), var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+    .section { margin-top: 18px; scroll-margin-top: 145px; }
+    label { display: block; color: var(--muted); font-size: .9rem; margin-bottom: 5px; }
+    input, select, textarea {
+      width: 100%;
+      color: var(--text);
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 11px;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(88,166,255,.12); }
+    input[type="checkbox"] { width: auto; accent-color: var(--accent); }
+    input[type="range"] { padding: 0; }
+    .field { margin-bottom: 12px; }
+    .inline { display: flex; align-items: center; gap: 9px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 12px; }
+    .stat {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .stat .k { color: var(--muted); font-size: .82rem; }
+    .stat .v { font-size: 1.45rem; font-weight: 750; margin-top: 4px; }
+    .stat .s { color: var(--muted); font-size: .8rem; }
+    .good-text { color: var(--good); }
+    .warn-text { color: var(--warn); }
+    .danger-text { color: var(--danger); }
+    .food-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr auto;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: end;
+    }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; font-size: .9rem; }
+    th { color: var(--muted); background: var(--panel-2); position: sticky; top: 0; }
+    tbody tr:hover { background: rgba(88,166,255,.04); }
+    canvas { width: 100%; height: 260px; display: block; background: #0d1117; border-radius: 10px; border: 1px solid var(--border); }
+    .note {
+      border-left: 4px solid var(--warn);
+      background: rgba(210,153,34,.08);
+      padding: 11px 13px;
+      color: #e8d8ae;
+      border-radius: 7px;
+      font-size: .9rem;
+    }
+    .small { color: var(--muted); font-size: .84rem; }
+    .pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: .76rem;
+      background: rgba(88,166,255,.12);
+      color: #a9d3ff;
+      border: 1px solid rgba(88,166,255,.3);
+    }
+    footer { border-top: 1px solid var(--border); color: var(--muted); padding: 24px 0 40px; font-size: .85rem; }
+    @media (max-width: 850px) {
+      header { position: static; }
+      .grid.two, .grid.three, .grid.four { grid-template-columns: 1fr; }
+      .food-row { grid-template-columns: 1fr 1fr; }
+      .food-row .food-name { grid-column: 1 / -1; }
+      .food-row button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="pill">Private local tracker</div>
+    <h1>Weight-Loss Dashboard</h1>
+    <p class="sub">Track food, walking, estimated calorie balance, estimated fat loss, weight trends, and exercise afterburn. Your entries stay in this browser unless you export them.</p>
+    <nav>
+      <a href="#profile">Profile</a>
+      <a href="#food">Food</a>
+      <a href="#walking">Walking</a>
+      <a href="#results">Results</a>
+      <a href="#history">History</a>
+      <a href="#charts">Charts</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="profile" class="section grid two">
+    <div class="card">
+      <h2>Profile</h2>
+      <div class="grid two">
+        <div class="field"><label for="age">Age</label><input id="age" type="number" min="18" max="100" value="36"></div>
+        <div class="field"><label for="sex">Sex used for BMR estimate</label><select id="sex"><option value="male">Male</option><option value="female">Female</option></select></div>
+        <div class="field"><label for="heightFt">Height — feet</label><input id="heightFt" type="number" min="4" max="8" value="5"></div>
+        <div class="field"><label for="heightIn">Height — inches</label><input id="heightIn" type="number" min="0" max="11" value="10"></div>
+        <div class="field"><label for="weight">Current weight (lb)</label><input id="weight" type="number" min="80" max="700" step="0.1" value="240"></div>
+        <div class="field"><label for="goalWeight">Goal weight (lb)</label><input id="goalWeight" type="number" min="80" max="700" step="0.1" value="200"></div>
+      </div>
+      <div class="field">
+        <label for="activityLevel">Baseline activity outside logged exercise</label>
+        <select id="activityLevel">
+          <option value="1.2">Mostly sedentary</option>
+          <option value="1.3">Light daily movement</option>
+          <option value="1.4">Moderately active day</option>
+          <option value="1.55">Very active day</option>
+        </select>
+      </div>
+      <p class="small">The baseline estimate uses the Mifflin–St Jeor equation and does not include walking entered below.</p>
+    </div>
+
+    <div class="card">
+      <h2>Today</h2>
+      <div class="field"><label for="entryDate">Entry date</label><input id="entryDate" type="date"></div>
+      <div class="field"><label for="morningWeight">Scale weight for this date (optional)</label><input id="morningWeight" type="number" min="80" max="700" step="0.1" placeholder="Example: 239.6"></div>
+      <div class="field"><label for="notes">Notes</label><textarea id="notes" rows="5" placeholder="Energy, soreness, water retention, appetite, medication effects, sleep, etc."></textarea></div>
+    </div>
+  </section>
+
+  <section id="food" class="section card">
+    <h2>Custom Food Log</h2>
+    <p class="small">Add individual foods or enter one total-calorie item for the day.</p>
+    <div id="foodRows"></div>
+    <div class="actions">
+      <button class="btn" id="addFood">Add food</button>
+      <button class="btn danger" id="clearFoods">Clear foods</button>
+    </div>
+    <div class="grid four" style="margin-top:14px">
+      <div class="stat"><div class="k">Calories</div><div class="v" id="foodCalories">0</div></div>
+      <div class="stat"><div class="k">Protein</div><div class="v" id="foodProtein">0 g</div></div>
+      <div class="stat"><div class="k">Fiber</div><div class="v" id="foodFiber">0 g</div></div>
+      <div class="stat"><div class="k">Items</div><div class="v" id="foodCount">0</div></div>
+    </div>
+  </section>
+
+  <section id="walking" class="section grid two">
+    <div class="card">
+      <h2>Walking Session</h2>
+      <div class="grid two">
+        <div class="field"><label for="walkMinutes">Duration (minutes)</label><input id="walkMinutes" type="number" min="0" max="900" value="60"></div>
+        <div class="field"><label for="walkSpeed">Average speed (mph)</label><input id="walkSpeed" type="number" min="1" max="6" step="0.1" value="3.5"></div>
+        <div class="field"><label for="incline">Average incline (%)</label><input id="incline" type="number" min="0" max="20" step="0.5" value="0"></div>
+        <div class="field"><label for="terrain">Terrain</label><select id="terrain"><option value="1">Flat / smooth</option><option value="1.05">Mixed city walking</option><option value="1.10">Uneven / hilly</option><option value="1.16">Difficult terrain</option></select></div>
+      </div>
+      <div class="field inline"><input id="armSwing" type="checkbox" checked><label for="armSwing" style="margin:0">Purposeful arm swinging</label></div>
+      <div class="field inline"><input id="bodyMovement" type="checkbox"><label for="bodyMovement" style="margin:0">Extra upper-body movement / energetic stride</label></div>
+      <div class="field inline"><input id="carryingLoad" type="checkbox"><label for="carryingLoad" style="margin:0">Carrying a light bag or load</label></div>
+      <div class="field">
+        <label for="intensity">Perceived effort: <span id="intensityText">Moderate</span></label>
+        <input id="intensity" type="range" min="1" max="5" value="3">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Afterburn / EPOC</h2>
+      <div class="field inline"><input id="includeEpoc" type="checkbox" checked><label for="includeEpoc" style="margin:0">Include a small afterburn estimate</label></div>
+      <div class="field">
+        <label for="epocPercent">Afterburn percentage: <span id="epocLabel">5%</span></label>
+        <input id="epocPercent" type="range" min="0" max="12" value="5">
+      </div>
+      <p class="small">For ordinary walking, afterburn is usually modest. This dashboard applies your chosen percentage to exercise calories and labels it separately.</p>
+      <div class="note">Exercise calorie numbers are estimates, not measurements. Arm swinging, terrain, stride, fitness, heart rate, and device error can all change the real result.</div>
+    </div>
+  </section>
+
+  <section id="results" class="section card">
+    <h2>Estimated Results</h2>
+    <div class="grid four">
+      <div class="stat"><div class="k">BMR</div><div class="v" id="bmr">—</div><div class="s">cal/day at rest</div></div>
+      <div class="stat"><div class="k">Baseline daily burn</div><div class="v" id="baselineBurn">—</div><div class="s">before logged walking</div></div>
+      <div class="stat"><div class="k">Walking calories</div><div class="v" id="walkCalories">—</div><div class="s">gross estimate</div></div>
+      <div class="stat"><div class="k">Afterburn</div><div class="v" id="epocCalories">—</div><div class="s">separate estimate</div></div>
+      <div class="stat"><div class="k">Total daily burn</div><div class="v" id="totalBurn">—</div></div>
+      <div class="stat"><div class="k">Calories eaten</div><div class="v" id="caloriesEaten">—</div></div>
+      <div class="stat"><div class="k">Estimated deficit</div><div class="v" id="deficit">—</div></div>
+      <div class="stat"><div class="k">Estimated fat equivalent</div><div class="v" id="fatEquivalent">—</div><div class="s">based on 3,500 cal/lb</div></div>
+    </div>
+    <div class="grid three" style="margin-top:16px">
+      <div class="stat"><div class="k">7-day pace</div><div class="v" id="weeklyPace">—</div></div>
+      <div class="stat"><div class="k">30-day pace</div><div class="v" id="monthlyPace">—</div></div>
+      <div class="stat"><div class="k">Estimated time to goal</div><div class="v" id="goalTime">—</div></div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="saveDay">Save / update this day</button>
+      <button class="btn" id="loadDay">Load selected date</button>
+    </div>
+  </section>
+
+  <section id="history" class="section card">
+    <h2>History</h2>
+    <div class="actions" style="margin-bottom:12px">
+      <button class="btn" id="exportJson">Export JSON</button>
+      <button class="btn" id="exportCsv">Export CSV</button>
+      <label class="btn" for="importJson" style="display:inline-block;color:var(--text);margin:0">Import JSON</label>
+      <input id="importJson" type="file" accept=".json,application/json" style="display:none">
+      <button class="btn danger" id="clearHistory">Delete all history</button>
+    </div>
+    <div class="grid four" style="margin-bottom:14px">
+      <div class="stat"><div class="k">Logged days</div><div class="v" id="loggedDays">0</div></div>
+      <div class="stat"><div class="k">Total walking</div><div class="v" id="totalWalking">0 min</div></div>
+      <div class="stat"><div class="k">Cumulative deficit</div><div class="v" id="cumulativeDeficit">0</div></div>
+      <div class="stat"><div class="k">Estimated fat equivalent</div><div class="v" id="cumulativeFat">0 lb</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Weight</th><th>Food</th><th>Walk</th><th>Exercise</th><th>Deficit</th><th>Fat eq.</th><th></th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="charts" class="section grid two">
+    <div class="card"><h2>Scale Weight Trend</h2><canvas id="weightChart" width="650" height="260"></canvas></div>
+    <div class="card"><h2>Daily Calorie Balance</h2><canvas id="deficitChart" width="650" height="260"></canvas></div>
+  </section>
+
+  <section class="section card">
+    <h2>How to Interpret the Numbers</h2>
+    <p><strong>Scale weight is not the same as fat mass.</strong> Sodium, carbohydrates, bowel contents, inflammation, soreness, hydration, and medication effects can move the scale by several pounds even while fat is being lost.</p>
+    <p><strong>The 3,500-calorie rule is an approximation.</strong> Real weight loss usually slows as body weight and energy expenditure decrease. Treat projected pounds as a planning estimate, not a guarantee.</p>
+    <p><strong>Very large sustained deficits can be difficult to tolerate.</strong> Energy, hydration, protein, micronutrients, sleep, and medical conditions matter. Discuss aggressive dieting or unusual weakness, dizziness, fainting, persistent vomiting, severe abdominal pain, or dehydration with a clinician.</p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Weight-Loss Dashboard — data is stored locally in your browser. No account or server is required.</div>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const KEY = "weightLossDashboard_v1";
+const PROFILE_KEY = "weightLossProfile_v1";
+let history = JSON.parse(localStorage.getItem(KEY) || "[]");
+
+function todayISO() {
+  const d = new Date();
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0,10);
+}
+$("entryDate").value = todayISO();
+
+function n(id) { return Number($(id).value) || 0; }
+function fmt(x, digits=0) { return Number(x).toLocaleString(undefined, {maximumFractionDigits: digits, minimumFractionDigits: digits}); }
+function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
+
+function addFoodRow(item = {}) {
+  const row = document.createElement("div");
+  row.className = "food-row";
+  row.innerHTML = `
+    <div class="food-name"><label>Food / meal</label><input class="f-name" placeholder="Example: chicken and rice" value="${escapeHtml(item.name || "")}"></div>
+    <div><label>Calories</label><input class="f-cal" type="number" min="0" step="1" value="${item.calories ?? ""}"></div>
+    <div><label>Protein / fiber (g)</label><div class="inline"><input class="f-protein" type="number" min="0" step="0.1" placeholder="P" value="${item.protein ?? ""}"><input class="f-fiber" type="number" min="0" step="0.1" placeholder="F" value="${item.fiber ?? ""}"></div></div>
+    <button class="btn danger remove-food" aria-label="Remove food">Remove</button>`;
+  row.querySelectorAll("input").forEach(i => i.addEventListener("input", recalc));
+  row.querySelector(".remove-food").addEventListener("click", () => { row.remove(); recalc(); });
+  $("foodRows").appendChild(row);
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+function getFoods() {
+  return [...document.querySelectorAll(".food-row")].map(row => ({
+    name: row.querySelector(".f-name").value.trim(),
+    calories: Number(row.querySelector(".f-cal").value) || 0,
+    protein: Number(row.querySelector(".f-protein").value) || 0,
+    fiber: Number(row.querySelector(".f-fiber").value) || 0
+  })).filter(x => x.name || x.calories || x.protein || x.fiber);
+}
+
+function metForSpeed(mph) {
+  if (mph < 2.0) return 2.3;
+  if (mph < 2.5) return 2.8;
+  if (mph < 3.0) return 3.2;
+  if (mph < 3.5) return 3.8;
+  if (mph < 4.0) return 4.8;
+  if (mph < 4.5) return 5.5;
+  if (mph < 5.0) return 6.5;
+  return 8.0;
+}
+
+function calculate() {
+  const age = n("age"), weightLb = n("weight");
+  const kg = weightLb * 0.45359237;
+  const cm = (n("heightFt") * 12 + n("heightIn")) * 2.54;
+  const bmr = 10 * kg + 6.25 * cm - 5 * age + ($("sex").value === "male" ? 5 : -161);
+  const baseline = bmr * Number($("activityLevel").value);
+
+  const foods = getFoods();
+  const eaten = foods.reduce((a,x)=>a+x.calories,0);
+  const protein = foods.reduce((a,x)=>a+x.protein,0);
+  const fiber = foods.reduce((a,x)=>a+x.fiber,0);
+
+  let met = metForSpeed(n("walkSpeed"));
+  met += n("incline") * 0.18;
+  met *= Number($("terrain").value);
+  if ($("armSwing").checked) met *= 1.05;
+  if ($("bodyMovement").checked) met *= 1.07;
+  if ($("carryingLoad").checked) met *= 1.05;
+  met *= [0, .90, .96, 1, 1.06, 1.12][n("intensity")] || 1;
+
+  const hours = n("walkMinutes") / 60;
+  const exercise = met * kg * hours;
+  const epoc = $("includeEpoc").checked ? exercise * (n("epocPercent")/100) : 0;
+  const totalBurn = baseline + exercise + epoc;
+  const deficit = totalBurn - eaten;
+  const fat = deficit / 3500;
+  const weekly = fat * 7;
+  const monthly = fat * 30;
+  const poundsToGoal = Math.max(0, weightLb - n("goalWeight"));
+  const weeksToGoal = weekly > 0 ? poundsToGoal / weekly : Infinity;
+
+  $("foodCalories").textContent = fmt(eaten);
+  $("foodProtein").textContent = fmt(protein,1) + " g";
+  $("foodFiber").textContent = fmt(fiber,1) + " g";
+  $("foodCount").textContent = foods.length;
+  $("bmr").textContent = fmt(bmr);
+  $("baselineBurn").textContent = fmt(baseline);
+  $("walkCalories").textContent = fmt(exercise);
+  $("epocCalories").textContent = fmt(epoc);
+  $("totalBurn").textContent = fmt(totalBurn);
+  $("caloriesEaten").textContent = fmt(eaten);
+  $("deficit").textContent = (deficit >= 0 ? "" : "Surplus ") + fmt(Math.abs(deficit));
+  $("deficit").className = "v " + (deficit >= 0 ? "good-text" : "warn-text");
+  $("fatEquivalent").textContent = (fat >= 0 ? "" : "Gain ") + fmt(Math.abs(fat),3) + " lb";
+  $("weeklyPace").textContent = fmt(weekly,2) + " lb/week";
+  $("monthlyPace").textContent = fmt(monthly,2) + " lb/30 days";
+  $("goalTime").textContent = !isFinite(weeksToGoal) ? "No deficit" : weeksToGoal < 1 ? "< 1 week" : fmt(weeksToGoal,1) + " weeks";
+
+  return {bmr, baseline, eaten, protein, fiber, met, exercise, epoc, totalBurn, deficit, fat, weekly, monthly};
+}
+
+function saveProfile() {
+  const data = {};
+  ["age","sex","heightFt","heightIn","weight","goalWeight","activityLevel","walkMinutes","walkSpeed","incline","terrain","armSwing","bodyMovement","carryingLoad","intensity","includeEpoc","epocPercent"].forEach(id => {
+    data[id] = $(id).type === "checkbox" ? $(id).checked : $(id).value;
+  });
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(data));
+}
+function loadProfile() {
+  const data = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}");
+  Object.entries(data).forEach(([id,val]) => {
+    if (!$(id)) return;
+    if ($(id).type === "checkbox") $(id).checked = val;
+    else $(id).value = val;
+  });
+}
+function collectDay() {
+  const c = calculate();
+  return {
+    date: $("entryDate").value,
+    scaleWeight: n("morningWeight") || null,
+    profileWeight: n("weight"),
+    foods: getFoods(),
+    walkMinutes: n("walkMinutes"),
+    walkSpeed: n("walkSpeed"),
+    incline: n("incline"),
+    armSwing: $("armSwing").checked,
+    bodyMovement: $("bodyMovement").checked,
+    carryingLoad: $("carryingLoad").checked,
+    caloriesEaten: c.eaten,
+    exerciseCalories: c.exercise,
+    epocCalories: c.epoc,
+    totalBurn: c.totalBurn,
+    deficit: c.deficit,
+    fatEquivalent: c.fat,
+    notes: $("notes").value.trim()
+  };
+}
+function saveDay() {
+  if (!$("entryDate").value) return alert("Choose a date.");
+  const day = collectDay();
+  const idx = history.findIndex(x => x.date === day.date);
+  if (idx >= 0) history[idx] = day; else history.push(day);
+  history.sort((a,b)=>a.date.localeCompare(b.date));
+  localStorage.setItem(KEY, JSON.stringify(history));
+  saveProfile();
+  renderHistory();
+  alert("Day saved.");
+}
+function loadDay(date = $("entryDate").value) {
+  const day = history.find(x => x.date === date);
+  if (!day) return alert("No saved entry exists for that date.");
+  $("entryDate").value = day.date;
+  $("morningWeight").value = day.scaleWeight ?? "";
+  $("weight").value = day.profileWeight || $("weight").value;
+  $("walkMinutes").value = day.walkMinutes ?? 0;
+  $("walkSpeed").value = day.walkSpeed ?? 3.5;
+  $("incline").value = day.incline ?? 0;
+  $("armSwing").checked = !!day.armSwing;
+  $("bodyMovement").checked = !!day.bodyMovement;
+  $("carryingLoad").checked = !!day.carryingLoad;
+  $("notes").value = day.notes || "";
+  $("foodRows").innerHTML = "";
+  (day.foods || []).forEach(addFoodRow);
+  if (!(day.foods || []).length) addFoodRow();
+  recalc();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function deleteDay(date) {
+  if (!confirm(`Delete the entry for ${date}?`)) return;
+  history = history.filter(x => x.date !== date);
+  localStorage.setItem(KEY, JSON.stringify(history));
+  renderHistory();
+}
+function renderHistory() {
+  const body = $("historyBody");
+  body.innerHTML = "";
+  [...history].reverse().forEach(d => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${d.date}</td><td>${d.scaleWeight ? fmt(d.scaleWeight,1)+" lb" : "—"}</td><td>${fmt(d.caloriesEaten)}</td><td>${fmt(d.walkMinutes)} min</td><td>${fmt((d.exerciseCalories||0)+(d.epocCalories||0))}</td><td class="${d.deficit>=0?'good-text':'warn-text'}">${d.deficit>=0?fmt(d.deficit):"−"+fmt(Math.abs(d.deficit))}</td><td>${fmt(d.fatEquivalent,3)} lb</td><td><button class="btn" data-load="${d.date}">Load</button> <button class="btn danger" data-del="${d.date}">Delete</button></td>`;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll("[data-load]").forEach(b => b.onclick = () => loadDay(b.dataset.load));
+  body.querySelectorAll("[data-del]").forEach(b => b.onclick = () => deleteDay(b.dataset.del));
+
+  const totalMin = history.reduce((a,x)=>a+(x.walkMinutes||0),0);
+  const cumDef = history.reduce((a,x)=>a+(x.deficit||0),0);
+  $("loggedDays").textContent = history.length;
+  $("totalWalking").textContent = fmt(totalMin) + " min";
+  $("cumulativeDeficit").textContent = fmt(cumDef) + " cal";
+  $("cumulativeFat").textContent = fmt(cumDef/3500,2) + " lb";
+  drawCharts();
+}
+function drawLineChart(canvas, points, valueKey, labelSuffix, zeroLine=false) {
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = "#0d1117"; ctx.fillRect(0,0,W,H);
+  const pad = {l:54,r:18,t:20,b:42};
+  if (!points.length) {
+    ctx.fillStyle = "#9da7b3"; ctx.font = "15px system-ui"; ctx.fillText("Save entries to display this chart.", 24, 40); return;
+  }
+  const vals = points.map(p=>p[valueKey]).filter(v=>Number.isFinite(v));
+  if (!vals.length) return;
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if (zeroLine) { min = Math.min(min,0); max = Math.max(max,0); }
+  if (min === max) { min -= 1; max += 1; }
+  const span = max-min;
+  min -= span*.12; max += span*.12;
+  const x = i => pad.l + i * ((W-pad.l-pad.r)/Math.max(1,points.length-1));
+  const y = v => pad.t + (max-v) * ((H-pad.t-pad.b)/(max-min));
+
+  ctx.strokeStyle="#30363d"; ctx.lineWidth=1;
+  for(let i=0;i<5;i++){ const yy=pad.t+i*(H-pad.t-pad.b)/4; ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(W-pad.r,yy);ctx.stroke(); }
+  ctx.fillStyle="#9da7b3"; ctx.font="12px system-ui";
+  for(let i=0;i<5;i++){ const val=max-i*(max-min)/4; ctx.fillText(fmt(val,1),5,pad.t+i*(H-pad.t-pad.b)/4+4); }
+
+  if (zeroLine && min < 0 && max > 0) {
+    ctx.strokeStyle="#d29922"; ctx.setLineDash([5,5]); ctx.beginPath(); ctx.moveTo(pad.l,y(0)); ctx.lineTo(W-pad.r,y(0)); ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.strokeStyle="#58a6ff"; ctx.lineWidth=3; ctx.beginPath();
+  points.forEach((p,i)=>{ const yy=y(p[valueKey]); i?ctx.lineTo(x(i),yy):ctx.moveTo(x(i),yy); }); ctx.stroke();
+  ctx.fillStyle="#58a6ff";
+  points.forEach((p,i)=>{ctx.beginPath();ctx.arc(x(i),y(p[valueKey]),4,0,Math.PI*2);ctx.fill();});
+  const labels = [0, Math.floor((points.length-1)/2), points.length-1].filter((v,i,a)=>a.indexOf(v)===i);
+  ctx.fillStyle="#9da7b3";
+  labels.forEach(i=>ctx.fillText(points[i].date.slice(5),x(i)-14,H-15));
+  ctx.fillText(labelSuffix, W-80, 15);
+}
+function drawCharts() {
+  const weightPoints = history.filter(x=>x.scaleWeight).map(x=>({date:x.date, value:x.scaleWeight}));
+  const deficitPoints = history.map(x=>({date:x.date, value:x.deficit}));
+  drawLineChart($("weightChart"), weightPoints, "value", "lb");
+  drawLineChart($("deficitChart"), deficitPoints, "value", "cal", true);
+}
+function download(filename, content, type) {
+  const blob = new Blob([content], {type});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function exportCSV() {
+  const rows = [["Date","Scale Weight","Calories Eaten","Walk Minutes","Walk Speed","Exercise Calories","Afterburn Calories","Total Burn","Deficit","Fat Equivalent","Notes"]];
+  history.forEach(d=>rows.push([d.date,d.scaleWeight||"",d.caloriesEaten,d.walkMinutes,d.walkSpeed,d.exerciseCalories,d.epocCalories,d.totalBurn,d.deficit,d.fatEquivalent,d.notes||""]));
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+  download("weight-loss-history.csv", csv, "text/csv");
+}
+function recalc() {
+  $("intensityText").textContent = ["","Easy","Light","Moderate","Hard","Very hard"][n("intensity")];
+  $("epocLabel").textContent = n("epocPercent") + "%";
+  calculate(); saveProfile();
+}
+
+$("addFood").onclick = () => addFoodRow();
+$("clearFoods").onclick = () => { if(confirm("Clear today's food rows?")) { $("foodRows").innerHTML=""; addFoodRow(); recalc(); } };
+$("saveDay").onclick = saveDay;
+$("loadDay").onclick = () => loadDay();
+$("exportJson").onclick = () => download("weight-loss-history.json", JSON.stringify({profile:JSON.parse(localStorage.getItem(PROFILE_KEY)||"{}"),history},null,2), "application/json");
+$("exportCsv").onclick = exportCSV;
+$("clearHistory").onclick = () => { if(confirm("Delete all saved history from this browser?")) { history=[]; localStorage.removeItem(KEY); renderHistory(); } };
+$("importJson").onchange = async e => {
+  try {
+    const data = JSON.parse(await e.target.files[0].text());
+    history = Array.isArray(data) ? data : (data.history || []);
+    localStorage.setItem(KEY, JSON.stringify(history));
+    if (data.profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(data.profile));
+    loadProfile(); renderHistory(); recalc();
+  } catch { alert("That JSON file could not be imported."); }
+  e.target.value = "";
+};
+
+document.querySelectorAll("input,select,textarea").forEach(el => {
+  if (!["importJson"].includes(el.id)) el.addEventListener("input", recalc);
+});
+loadProfile();
+addFoodRow({name:"Daily total", calories:2000});
+recalc();
+renderHistory();
+</script>
+</body>
+</html>
