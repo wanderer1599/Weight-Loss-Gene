@@ -250,7 +250,8 @@
       <div class="stat"><div class="k">Estimated deficit</div><div class="v" id="deficit">—</div></div>
       <div class="stat"><div class="k">Estimated fat equivalent</div><div class="v" id="fatEquivalent">—</div><div class="s">based on 3,500 cal/lb</div></div>
     </div>
-    <div class="grid three" style="margin-top:16px">
+    <div class="grid four" style="margin-top:16px">
+      <div class="stat"><div class="k">1-day pace</div><div class="v" id="dailyPace">—</div><div class="s">estimated fat equivalent</div></div>
       <div class="stat"><div class="k">7-day pace</div><div class="v" id="weeklyPace">—</div></div>
       <div class="stat"><div class="k">30-day pace</div><div class="v" id="monthlyPace">—</div></div>
       <div class="stat"><div class="k">Estimated time to goal</div><div class="v" id="goalTime">—</div></div>
@@ -397,6 +398,7 @@ function calculate() {
   $("deficit").textContent = (deficit >= 0 ? "" : "Surplus ") + fmt(Math.abs(deficit));
   $("deficit").className = "v " + (deficit >= 0 ? "good-text" : "warn-text");
   $("fatEquivalent").textContent = (fat >= 0 ? "" : "Gain ") + fmt(Math.abs(fat),3) + " lb";
+  $("dailyPace").textContent = fmt(fat,3) + " lb/day";
   $("weeklyPace").textContent = fmt(weekly,2) + " lb/week";
   $("monthlyPace").textContent = fmt(monthly,2) + " lb/30 days";
   $("goalTime").textContent = !isFinite(weeksToGoal) ? "No deficit" : weeksToGoal < 1 ? "< 1 week" : fmt(weeksToGoal,1) + " weeks";
